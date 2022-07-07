@@ -1,0 +1,1 @@
+{"version":3,"file":"paginationfilter.js","sourceRoot":"","sources":["../../../src/calls/dtos/paginationfilter.ts"],"names":[],"mappings":";;;AAAA,MAAa,UAAU;IACnB,YAAoB,UAAkB,EAAE,QAAgB;QACpD,IAAI,CAAC,UAAU,GAAG,UAAU,CAAA;QAC5B,IAAI,CAAC,QAAQ,GAAG,QAAQ,CAAA;IAC5B,CAAC;CAGJ;AAPD,gCAOC"}

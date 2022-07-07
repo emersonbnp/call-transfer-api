@@ -1,0 +1,19 @@
+{
+  "details": {
+    "description": "Plantão em João Pessoa",
+    "paymentValue": 1000,
+    "startDate": "2022-01-01T13:00:00.000Z",
+    "duration": 12,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        114.5110151,
+        -8.4556973
+      ]
+    }
+  },
+  "contact": {
+    "name": "Emerson",
+    "phone": "123123123"
+  }
+}
