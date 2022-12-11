@@ -168,18 +168,17 @@ const swagger_1 = __webpack_require__(5);
 const app_module_1 = __webpack_require__(6);
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
-    console.log(process.env.SWAGGER);
-    if (process.env.SWAGGER === "true") {
+    if (process.env.SWAGGER === 'true') {
         const config = new swagger_1.DocumentBuilder()
             .setTitle('Call Transfer API')
             .setDescription('API to manipulate call transfers')
             .setVersion('1.0')
-            .addTag('calls transfer api')
+            .addTag('call transfer api')
             .build();
         const document = swagger_1.SwaggerModule.createDocument(app, config);
         swagger_1.SwaggerModule.setup('swagger', app, document);
     }
-    await app.listen(3000);
+    await app.listen(8080);
     if (true) {
         module.hot.accept();
         module.hot.dispose(() => app.close());
@@ -225,9 +224,9 @@ let AppModule = class AppModule {
 AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            call_module_1.CallModule,
             config_1.ConfigModule.forRoot({ isGlobal: true }),
-            mongoose_1.MongooseModule.forRoot(`mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@localhost`),
+            mongoose_1.MongooseModule.forRoot(`mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@mongo`),
+            call_module_1.CallModule,
         ],
     })
 ], AppModule);
@@ -272,18 +271,35 @@ exports.CallModule = void 0;
 const common_1 = __webpack_require__(7);
 const mongoose_1 = __webpack_require__(9);
 const call_controller_1 = __webpack_require__(11);
-const call_repository_1 = __webpack_require__(13);
-const call_service_1 = __webpack_require__(12);
-const call_1 = __webpack_require__(15);
+const call_service_1 = __webpack_require__(20);
+const call_repository_1 = __webpack_require__(22);
+const call_repository_interface_1 = __webpack_require__(21);
+const call_1 = __webpack_require__(12);
+const call_service_interface_1 = __webpack_require__(18);
+const jwt_module_1 = __webpack_require__(23);
+const jwt_1 = __webpack_require__(24);
 let CallModule = class CallModule {
 };
 CallModule = __decorate([
     (0, common_1.Module)({
         imports: [
             mongoose_1.MongooseModule.forFeature([{ name: call_1.Call.name, schema: call_1.CallSchema }]),
+            jwt_module_1.SecurityModule,
         ],
         controllers: [call_controller_1.CallController],
-        providers: [call_service_1.CallService, call_repository_1.CallRepository],
+        providers: [
+            jwt_1.JwtService,
+            call_service_1.CallService,
+            {
+                provide: call_repository_interface_1.ICallRepository,
+                useClass: call_repository_1.CallRepository,
+            },
+            {
+                provide: call_service_interface_1.ICallService,
+                useClass: call_service_1.CallService,
+            },
+        ],
+        exports: [call_service_interface_1.ICallService],
     })
 ], CallModule);
 exports.CallModule = CallModule;
@@ -307,51 +323,106 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var _a, _b, _c, _d;
+var _a, _b, _c, _d, _e;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.CallController = void 0;
 const common_1 = __webpack_require__(7);
 const swagger_1 = __webpack_require__(5);
-const call_service_1 = __webpack_require__(12);
-const call_1 = __webpack_require__(15);
-const paginationfilter_1 = __webpack_require__(19);
-const regionfilter_1 = __webpack_require__(20);
+const call_1 = __webpack_require__(12);
+const paginationfilter_1 = __webpack_require__(16);
+const regionfilter_1 = __webpack_require__(17);
+const call_service_interface_1 = __webpack_require__(18);
+const passport_1 = __webpack_require__(19);
 let CallController = class CallController {
     constructor(callService) {
         this.callService = callService;
     }
-    async addCall(response, call) {
+    async addCall(response, request, call) {
+        const { user } = request;
+        call.userUuid = user.userUuid;
         const newCall = await this.callService.add(call);
-        return response.status(common_1.HttpStatus.CREATED).json({ data: newCall });
+        try {
+            return response.status(common_1.HttpStatus.CREATED).json({ data: newCall });
+        }
+        catch (e) {
+            if (e instanceof common_1.NotFoundException) {
+                return response.status(common_1.HttpStatus.NOT_FOUND).json();
+            }
+            if (e instanceof common_1.BadRequestException) {
+                return response.status(common_1.HttpStatus.BAD_REQUEST).json();
+            }
+            return response.status(common_1.HttpStatus.INTERNAL_SERVER_ERROR).json();
+        }
     }
-    async getCallsInRegion(location, page, response) {
-        const filter = new regionfilter_1.RegionFilter(location);
-        const pagination = new paginationfilter_1.Pagination(page);
-        const callsInRegion = await this.callService.getCallsInRegion(filter, pagination);
-        return response.status(common_1.HttpStatus.OK).json({ data: callsInRegion });
+    async getCallsByFilter(location, userUuid, page, response) {
+        const filter = new regionfilter_1.RegionFilter(location || {});
+        const pagination = new paginationfilter_1.Pagination(page || {});
+        const callsInRegion = await this.callService.getCallsByFilter(filter, pagination, userUuid);
+        try {
+            return response.status(common_1.HttpStatus.OK).json({ data: callsInRegion });
+        }
+        catch (e) {
+            if (e instanceof common_1.NotFoundException) {
+                return response.status(common_1.HttpStatus.NOT_FOUND).json();
+            }
+            if (e instanceof common_1.BadRequestException) {
+                return response.status(common_1.HttpStatus.BAD_REQUEST).json();
+            }
+            return response.status(common_1.HttpStatus.INTERNAL_SERVER_ERROR).json();
+        }
+    }
+    async delete(id, response, request) {
+        const { user } = request;
+        const deletedCall = await this.callService.delete(id, user);
+        try {
+            return response.status(common_1.HttpStatus.OK).json({ data: deletedCall });
+        }
+        catch (e) {
+            if (e instanceof common_1.NotFoundException) {
+                return response.status(common_1.HttpStatus.NOT_FOUND).json();
+            }
+            if (e instanceof common_1.BadRequestException) {
+                return response.status(common_1.HttpStatus.BAD_REQUEST).json();
+            }
+            return response.status(common_1.HttpStatus.INTERNAL_SERVER_ERROR).json();
+        }
     }
 };
 __decorate([
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt')),
     (0, common_1.Post)(),
     __param(0, (0, common_1.Res)()),
-    __param(1, (0, common_1.Body)()),
+    __param(1, (0, common_1.Req)()),
+    __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, typeof (_a = typeof call_1.Call !== "undefined" && call_1.Call) === "function" ? _a : Object]),
+    __metadata("design:paramtypes", [Object, Object, typeof (_a = typeof call_1.Call !== "undefined" && call_1.Call) === "function" ? _a : Object]),
     __metadata("design:returntype", typeof (_b = typeof Promise !== "undefined" && Promise) === "function" ? _b : Object)
 ], CallController.prototype, "addCall", null);
 __decorate([
-    (0, common_1.Get)("/filter"),
-    __param(0, (0, common_1.Query)("location")),
-    __param(1, (0, common_1.Query)("page")),
-    __param(2, (0, common_1.Res)()),
+    (0, common_1.Get)('/filter'),
+    __param(0, (0, common_1.Query)('location')),
+    __param(1, (0, common_1.Query)('userUuid')),
+    __param(2, (0, common_1.Query)('page')),
+    __param(3, (0, common_1.Res)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object, Object]),
+    __metadata("design:paramtypes", [Object, String, Object, Object]),
     __metadata("design:returntype", typeof (_c = typeof Promise !== "undefined" && Promise) === "function" ? _c : Object)
-], CallController.prototype, "getCallsInRegion", null);
+], CallController.prototype, "getCallsByFilter", null);
+__decorate([
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt')),
+    (0, common_1.Delete)('/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Res)()),
+    __param(2, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object, Object]),
+    __metadata("design:returntype", typeof (_d = typeof Promise !== "undefined" && Promise) === "function" ? _d : Object)
+], CallController.prototype, "delete", null);
 CallController = __decorate([
-    (0, swagger_1.ApiTags)("calls"),
-    (0, common_1.Controller)("/v1/calls"),
-    __metadata("design:paramtypes", [typeof (_d = typeof call_service_1.CallService !== "undefined" && call_service_1.CallService) === "function" ? _d : Object])
+    (0, swagger_1.ApiTags)('calls'),
+    (0, common_1.Controller)('/v1/calls'),
+    __param(0, (0, common_1.Inject)(call_service_interface_1.ICallService)),
+    __metadata("design:paramtypes", [typeof (_e = typeof call_service_interface_1.ICallService !== "undefined" && call_service_interface_1.ICallService) === "function" ? _e : Object])
 ], CallController);
 exports.CallController = CallController;
 
@@ -371,122 +442,30 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var _a;
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.CallService = void 0;
-const common_1 = __webpack_require__(7);
-const call_repository_1 = __webpack_require__(13);
-let CallService = class CallService {
-    constructor(callRepository) {
-        this.callRepository = callRepository;
-    }
-    add(call) {
-        return this.callRepository.add(call);
-    }
-    getCallsInRegion(filter, pagination) {
-        return this.callRepository.findInRegion(filter, pagination);
-    }
-};
-CallService = __decorate([
-    (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [typeof (_a = typeof call_repository_1.CallRepository !== "undefined" && call_repository_1.CallRepository) === "function" ? _a : Object])
-], CallService);
-exports.CallService = CallService;
-
-
-/***/ }),
-/* 13 */
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-"use strict";
-
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
-var __param = (this && this.__param) || function (paramIndex, decorator) {
-    return function (target, key) { decorator(target, key, paramIndex); }
-};
-var _a;
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.CallRepository = void 0;
-const common_1 = __webpack_require__(7);
-const mongoose_1 = __webpack_require__(9);
-const mongoose_2 = __webpack_require__(14);
-const call_1 = __webpack_require__(15);
-let CallRepository = class CallRepository {
-    constructor(callModel) {
-        this.callModel = callModel;
-    }
-    async add(call) {
-        const callCreated = new this.callModel(call);
-        return callCreated.save();
-    }
-    async findInRegion(filter, pagination) {
-        return this.callModel
-            .find({
-            'details.location': {
-                $near: {
-                    $geometry: { type: 'Point', coordinates: [filter.longitude, filter.latitude] },
-                    $maxDistance: filter.distance,
-                },
-            },
-        })
-            .skip((pagination.pageNumber - 1) * pagination.pageSize).limit(pagination.pageSize)
-            .exec();
-    }
-};
-CallRepository = __decorate([
-    (0, common_1.Injectable)(),
-    __param(0, (0, mongoose_1.InjectModel)(call_1.Call.name)),
-    __metadata("design:paramtypes", [typeof (_a = typeof mongoose_2.Model !== "undefined" && mongoose_2.Model) === "function" ? _a : Object])
-], CallRepository);
-exports.CallRepository = CallRepository;
-
-
-/***/ }),
-/* 14 */
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("mongoose");
-
-/***/ }),
-/* 15 */
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-"use strict";
-
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
 var _a, _b;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.CallSchema = exports.Call = void 0;
 const mongoose_1 = __webpack_require__(9);
-const contact_1 = __webpack_require__(16);
-const details_1 = __webpack_require__(17);
+const mongoose_2 = __webpack_require__(13);
+const details_1 = __webpack_require__(14);
 let Call = class Call {
 };
 __decorate([
+    (0, mongoose_1.Prop)(),
+    __metadata("design:type", typeof (_a = typeof mongoose_2.Types !== "undefined" && mongoose_2.Types.ObjectId) === "function" ? _a : Object)
+], Call.prototype, "_id", void 0);
+__decorate([
     (0, mongoose_1.Prop)({ required: true, type: details_1.Details }),
-    __metadata("design:type", typeof (_a = typeof details_1.Details !== "undefined" && details_1.Details) === "function" ? _a : Object)
+    __metadata("design:type", typeof (_b = typeof details_1.Details !== "undefined" && details_1.Details) === "function" ? _b : Object)
 ], Call.prototype, "details", void 0);
 __decorate([
-    (0, mongoose_1.Prop)({ required: true, type: contact_1.Contact }),
-    __metadata("design:type", typeof (_b = typeof contact_1.Contact !== "undefined" && contact_1.Contact) === "function" ? _b : Object)
-], Call.prototype, "contact", void 0);
+    (0, mongoose_1.Prop)({ required: true }),
+    __metadata("design:type", String)
+], Call.prototype, "userUuid", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ default: false }),
+    __metadata("design:type", Boolean)
+], Call.prototype, "deleted", void 0);
 Call = __decorate([
     (0, mongoose_1.Schema)({ autoIndex: true })
 ], Call);
@@ -495,41 +474,14 @@ exports.CallSchema = mongoose_1.SchemaFactory.createForClass(Call);
 
 
 /***/ }),
-/* 16 */
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+/* 13 */
+/***/ ((module) => {
 
 "use strict";
-
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.Contact = void 0;
-const mongoose_1 = __webpack_require__(9);
-let Contact = class Contact {
-};
-__decorate([
-    (0, mongoose_1.Prop)({ required: true }),
-    __metadata("design:type", String)
-], Contact.prototype, "name", void 0);
-__decorate([
-    (0, mongoose_1.Prop)({ required: true }),
-    __metadata("design:type", String)
-], Contact.prototype, "phone", void 0);
-Contact = __decorate([
-    (0, mongoose_1.Schema)({})
-], Contact);
-exports.Contact = Contact;
-
+module.exports = require("mongoose");
 
 /***/ }),
-/* 17 */
+/* 14 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
@@ -547,7 +499,7 @@ var _a, _b;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Details = void 0;
 const mongoose_1 = __webpack_require__(9);
-const location_1 = __webpack_require__(18);
+const location_1 = __webpack_require__(15);
 let Details = class Details {
 };
 __decorate([
@@ -577,7 +529,7 @@ exports.Details = Details;
 
 
 /***/ }),
-/* 18 */
+/* 15 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 "use strict";
@@ -614,7 +566,7 @@ exports.Location = Location;
 
 
 /***/ }),
-/* 19 */
+/* 16 */
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -631,7 +583,7 @@ exports.Pagination = Pagination;
 
 
 /***/ }),
-/* 20 */
+/* 17 */
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -646,6 +598,294 @@ class RegionFilter {
     }
 }
 exports.RegionFilter = RegionFilter;
+
+
+/***/ }),
+/* 18 */
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ICallService = void 0;
+exports.ICallService = Symbol('ICallService');
+
+
+/***/ }),
+/* 19 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("@nestjs/passport");
+
+/***/ }),
+/* 20 */
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
+var _a;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.CallService = void 0;
+const common_1 = __webpack_require__(7);
+const call_repository_interface_1 = __webpack_require__(21);
+let CallService = class CallService {
+    constructor(callRepository) {
+        this.callRepository = callRepository;
+    }
+    async delete(id, user) {
+        const call = await this.callRepository.findByIdAndUserUuid(id, user.userUuid);
+        if (!call)
+            throw new common_1.NotFoundException();
+        await this.callRepository.delete(call);
+        return call;
+    }
+    async add(call) {
+        return this.callRepository.add(call);
+    }
+    async getCallsByFilter(filter, pagination, userUuid) {
+        return this.callRepository.getCallsByFilter(filter, pagination, userUuid);
+    }
+};
+CallService = __decorate([
+    (0, common_1.Injectable)(),
+    __param(0, (0, common_1.Inject)(call_repository_interface_1.ICallRepository)),
+    __metadata("design:paramtypes", [typeof (_a = typeof call_repository_interface_1.ICallRepository !== "undefined" && call_repository_interface_1.ICallRepository) === "function" ? _a : Object])
+], CallService);
+exports.CallService = CallService;
+
+
+/***/ }),
+/* 21 */
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ICallRepository = void 0;
+exports.ICallRepository = Symbol('ICallRepository');
+
+
+/***/ }),
+/* 22 */
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
+var _a;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.CallRepository = void 0;
+const common_1 = __webpack_require__(7);
+const mongoose_1 = __webpack_require__(9);
+const mongoose_2 = __webpack_require__(13);
+const call_1 = __webpack_require__(12);
+let CallRepository = class CallRepository {
+    constructor(callModel) {
+        this.callModel = callModel;
+    }
+    async delete(call) {
+        call.deleted = true;
+        console.log(call);
+        return this.callModel.findByIdAndUpdate(call._id, call, { new: true });
+    }
+    async findByIdAndUserUuid(id, userUuid) {
+        return this.callModel.findOne({ _id: id, userUuid: userUuid }).exec();
+    }
+    async add(call) {
+        const callCreated = new this.callModel(call);
+        return callCreated.save();
+    }
+    async getCallsByFilter(filter, pagination, userUuid) {
+        let locationFilter = {};
+        let userFilter = {};
+        if (filter === null || filter === void 0 ? void 0 : filter.distance) {
+            locationFilter = {
+                'details.location.coordinates': {
+                    $near: {
+                        $geometry: {
+                            type: 'Point',
+                            coordinates: [filter.longitude, filter.latitude],
+                        },
+                        $maxDistance: filter.distance,
+                    },
+                },
+            };
+        }
+        if (userUuid) {
+            userFilter = { userUuid: userUuid };
+        }
+        return this.callModel
+            .find(Object.assign(Object.assign(Object.assign({}, locationFilter), userFilter), { deleted: false }))
+            .skip((pagination.pageNumber - 1) * pagination.pageSize)
+            .limit(pagination.pageSize)
+            .exec();
+    }
+};
+CallRepository = __decorate([
+    (0, common_1.Injectable)(),
+    __param(0, (0, mongoose_1.InjectModel)(call_1.Call.name)),
+    __metadata("design:paramtypes", [typeof (_a = typeof mongoose_2.Model !== "undefined" && mongoose_2.Model) === "function" ? _a : Object])
+], CallRepository);
+exports.CallRepository = CallRepository;
+
+
+/***/ }),
+/* 23 */
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.SecurityModule = void 0;
+const common_1 = __webpack_require__(7);
+const jwt_1 = __webpack_require__(24);
+const jwt_strategy_1 = __webpack_require__(25);
+const jwt_guard_1 = __webpack_require__(27);
+let SecurityModule = class SecurityModule {
+};
+SecurityModule = __decorate([
+    (0, common_1.Module)({
+        imports: [],
+        providers: [jwt_strategy_1.JwtStrategy, jwt_1.JwtService, jwt_guard_1.JwtGuard],
+    })
+], SecurityModule);
+exports.SecurityModule = SecurityModule;
+
+
+/***/ }),
+/* 24 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("@nestjs/jwt");
+
+/***/ }),
+/* 25 */
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.JwtStrategy = void 0;
+const common_1 = __webpack_require__(7);
+const passport_1 = __webpack_require__(19);
+const passport_jwt_1 = __webpack_require__(26);
+let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(passport_jwt_1.Strategy, 'jwt') {
+    constructor() {
+        super({
+            jwtFromRequest: passport_jwt_1.ExtractJwt.fromAuthHeaderAsBearerToken(),
+            secretOrKey: process.env.PUBLIC_KEY.replace(/\\n/g, '\n'),
+            algorithms: ['RS256'],
+        });
+        this.validate = (payload) => payload;
+    }
+};
+JwtStrategy = __decorate([
+    (0, common_1.Injectable)(),
+    __metadata("design:paramtypes", [])
+], JwtStrategy);
+exports.JwtStrategy = JwtStrategy;
+
+
+/***/ }),
+/* 26 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("passport-jwt");
+
+/***/ }),
+/* 27 */
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.JwtGuard = void 0;
+const common_1 = __webpack_require__(7);
+const jwt_1 = __webpack_require__(24);
+const passport_1 = __webpack_require__(19);
+const passport_jwt_1 = __webpack_require__(26);
+let JwtGuard = class JwtGuard extends (0, passport_1.AuthGuard)('jwt') {
+    constructor(jwtService) {
+        super({
+            jwtFromRequest: passport_jwt_1.ExtractJwt.fromAuthHeaderAsBearerToken(),
+            secretOrKey: process.env.PUBLIC_KEY.replace(/\\n/g, '\n'),
+            algorithms: ['RS256'],
+        });
+        this.jwtService = jwtService;
+        this.sanitizeToken = (token) => token.replace('Bearer ', '').trim();
+        this.mountPublicKey = (publicKey) => publicKey.replace(/\\n/g, '\n');
+    }
+    canActivate(context) {
+        const request = context.switchToHttp().getRequest();
+        const token = request.headers['authorization'];
+        if (!token)
+            return false;
+        const sanitizedToken = this.sanitizeToken(token);
+        const publicKey = this.mountPublicKey(process.env.PUBLIC_KEY);
+        this.jwtService.verify(sanitizedToken, {
+            publicKey,
+            algorithms: ['RS256'],
+        });
+        console.log('validado');
+        return true;
+    }
+};
+JwtGuard = __decorate([
+    (0, common_1.Injectable)(),
+    __metadata("design:paramtypes", [typeof (_a = typeof jwt_1.JwtService !== "undefined" && jwt_1.JwtService) === "function" ? _a : Object])
+], JwtGuard);
+exports.JwtGuard = JwtGuard;
 
 
 /***/ })
@@ -710,7 +950,7 @@ exports.RegionFilter = RegionFilter;
 /******/ 	
 /******/ 	/* webpack/runtime/getFullHash */
 /******/ 	(() => {
-/******/ 		__webpack_require__.h = () => ("25ad3c5acc14a2626bfb")
+/******/ 		__webpack_require__.h = () => ("030ce2529539c1170b10")
 /******/ 	})();
 /******/ 	
 /******/ 	/* webpack/runtime/hasOwnProperty shorthand */

@@ -1,1 +1,1 @@
-{"version":3,"file":"paginationfilter.js","sourceRoot":"","sources":["../../../src/calls/dtos/paginationfilter.ts"],"names":[],"mappings":";;;AAAA,MAAa,UAAU;IACnB,YAAoB,UAAkB,EAAE,QAAgB;QACpD,IAAI,CAAC,UAAU,GAAG,UAAU,CAAA;QAC5B,IAAI,CAAC,QAAQ,GAAG,QAAQ,CAAA;IAC5B,CAAC;CAGJ;AAPD,gCAOC"}
+{"version":3,"file":"paginationfilter.js","sourceRoot":"","sources":["../../../src/calls/dtos/paginationfilter.ts"],"names":[],"mappings":";;;AAAA,MAAa,UAAU;IACrB,YAAmB,EAAE,MAAM,EAAE,IAAI,EAAE;QACjC,IAAI,CAAC,UAAU,GAAG,MAAM,CAAC;QACzB,IAAI,CAAC,QAAQ,GAAG,IAAI,CAAC;IACvB,CAAC;CAGF;AAPD,gCAOC"}

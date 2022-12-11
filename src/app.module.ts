@@ -5,9 +5,11 @@ import { CallModule } from './calls/call.module';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    MongooseModule.forRoot(
+      `mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@mongo`,
+    ),
     CallModule,
-    ConfigModule.forRoot({isGlobal: true}),
-    MongooseModule.forRoot(`mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@localhost`),
   ],
 })
-export class AppModule {}
+export class AppModule { }

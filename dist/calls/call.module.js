@@ -9,19 +9,36 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CallModule = void 0;
 const common_1 = require("@nestjs/common");
 const mongoose_1 = require("@nestjs/mongoose");
-const call_controller_1 = require("./call.controller");
-const call_repository_1 = require("./call.repository");
-const call_service_1 = require("./call.service");
-const call_1 = require("./dtos/call");
+const call_controller_1 = require("./controller/call.controller");
+const call_service_1 = require("./service/call.service");
+const call_repository_1 = require("./repository/call.repository");
+const call_repository_interface_1 = require("./repository/call.repository.interface");
+const call_1 = require("./schemas/call");
+const call_service_interface_1 = require("./service/call.service.interface");
+const security_module_1 = require("../security/security.module");
+const jwt_1 = require("@nestjs/jwt");
 let CallModule = class CallModule {
 };
 CallModule = __decorate([
     (0, common_1.Module)({
         imports: [
             mongoose_1.MongooseModule.forFeature([{ name: call_1.Call.name, schema: call_1.CallSchema }]),
+            security_module_1.SecurityModule,
         ],
         controllers: [call_controller_1.CallController],
-        providers: [call_service_1.CallService, call_repository_1.CallRepository],
+        providers: [
+            jwt_1.JwtService,
+            call_service_1.CallService,
+            {
+                provide: call_repository_interface_1.ICallRepository,
+                useClass: call_repository_1.CallRepository,
+            },
+            {
+                provide: call_service_interface_1.ICallService,
+                useClass: call_service_1.CallService,
+            },
+        ],
+        exports: [call_service_interface_1.ICallService],
     })
 ], CallModule);
 exports.CallModule = CallModule;

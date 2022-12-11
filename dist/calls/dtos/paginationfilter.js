@@ -2,9 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Pagination = void 0;
 class Pagination {
-    constructor(pageNumber, pageSize) {
-        this.pageNumber = pageNumber;
-        this.pageSize = pageSize;
+    constructor({ number, size }) {
+        this.pageNumber = number;
+        this.pageSize = size;
     }
 }
 exports.Pagination = Pagination;

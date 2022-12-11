@@ -1,5 +1,8 @@
 export declare class Pagination {
-    constructor(pageNumber: number, pageSize: number);
+    constructor({ number, size }: {
+        number: any;
+        size: any;
+    });
     readonly pageNumber: number;
     readonly pageSize: number;
 }

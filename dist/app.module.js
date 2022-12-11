@@ -8,6 +8,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
+const config_1 = require("@nestjs/config");
 const mongoose_1 = require("@nestjs/mongoose");
 const call_module_1 = require("./calls/call.module");
 let AppModule = class AppModule {
@@ -15,8 +16,9 @@ let AppModule = class AppModule {
 AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            call_module_1.CallModule,
-            mongoose_1.MongooseModule.forRoot('mongodb://call-transfer:123456@localhost'),
+            config_1.ConfigModule.forRoot({ isGlobal: true }),
+            mongoose_1.MongooseModule.forRoot(`mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@mongo`),
+            call_module_1.CallModule
         ],
     })
 ], AppModule);
