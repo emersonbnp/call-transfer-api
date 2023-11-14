@@ -27,6 +27,8 @@ services:
   #     - call-transfer
   #   depends_on:
   #     - mongo
+  #   environment:
+  #     MONGODB_HOST: mongo
 
   authentication-api:
     image: authentication-api
