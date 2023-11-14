@@ -6,7 +6,6 @@ export type CallDocument = Call & Document;
 
 @Schema({ autoIndex: true })
 export class Call {
-  @Prop()
   readonly _id: Types.ObjectId;
   @Prop({ required: true, type: Details })
   readonly details: Details;
