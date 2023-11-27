@@ -9,7 +9,7 @@ import { ICallService } from './call.service.interface';
 export class CallService implements ICallService {
   constructor(
     @Inject(ICallRepository) private readonly callRepository: ICallRepository,
-  ) { }
+  ) {}
 
   async delete(id: string, user: any): Promise<Call> {
     const call = await this.callRepository.findByIdAndUserUuid(
@@ -21,7 +21,8 @@ export class CallService implements ICallService {
     return call;
   }
 
-  async add(call: Call): Promise<Call> {
+  async add(call: Call, userUuid: string): Promise<Call> {
+    call.userUuid = userUuid;
     return this.callRepository.add(call);
   }
 

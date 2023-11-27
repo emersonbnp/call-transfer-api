@@ -4,7 +4,7 @@ import { Call } from '../schemas/call';
 
 export interface ICallService {
   delete(id: string, user: any): Promise<Call>;
-  add(call: Call): Promise<Call>;
+  add(call: Call, userUuid: string): Promise<Call>;
 
   getCallsByFilter(
     filter: RegionFilter,
