@@ -4,8 +4,10 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   HttpStatus,
   Inject,
+  InternalServerErrorException,
   NotFoundException,
   Param,
   Post,
@@ -24,31 +26,25 @@ import { AuthGuard } from '@nestjs/passport';
 @ApiTags('calls')
 @Controller('/v1/calls')
 export class CallController {
-
   constructor(
     @Inject(ICallService) private readonly callService: ICallService,
-  ) { }
+  ) {}
 
   @UseGuards(AuthGuard('jwt'))
   @Post()
-  async addCall(
-    @Res() response: any,
-    @Req() request: any,
-    @Body() call: Call,
-  ): Promise<Call> {
-    const { user } = request;
-    call.userUuid = user.userUuid;
-    const newCall = await this.callService.add(call);
+  async addCall(@Body() call: Call, @Req() request: any): Promise<Call> {
+    const userUuid = request.user.userUuid;
+    const newCall = await this.callService.add(call, userUuid);
     try {
-      return response.status(HttpStatus.CREATED).json({ data: newCall });
+      return newCall;
     } catch (e: any) {
       if (e instanceof NotFoundException) {
-        return response.status(HttpStatus.NOT_FOUND).json();
+        throw new NotFoundException();
       }
       if (e instanceof BadRequestException) {
-        return response.status(HttpStatus.BAD_REQUEST).json();
+        throw new BadRequestException();
       }
-      return response.status(HttpStatus.INTERNAL_SERVER_ERROR).json();
+      throw new InternalServerErrorException();
     }
   }
 
@@ -56,8 +52,7 @@ export class CallController {
   async getCallsByFilter(
     @Query('location') location: any,
     @Query('userUuid') userUuid: string,
-    @Query('page') page: any,
-    @Res() response: any,
+    @Query('page') page: any
   ): Promise<Call[]> {
     const filter = new RegionFilter(location || {});
     const pagination = new Pagination(page || {});
@@ -67,37 +62,33 @@ export class CallController {
       userUuid,
     );
     try {
-      return response.status(HttpStatus.OK).json({ data: callsInRegion });
+      return callsInRegion;
     } catch (e: any) {
       if (e instanceof NotFoundException) {
-        return response.status(HttpStatus.NOT_FOUND).json();
+        throw new NotFoundException();
       }
       if (e instanceof BadRequestException) {
-        return response.status(HttpStatus.BAD_REQUEST).json();
+        throw new BadRequestException();
       }
-      return response.status(HttpStatus.INTERNAL_SERVER_ERROR).json();
+      throw new InternalServerErrorException();
     }
   }
 
   @UseGuards(AuthGuard('jwt'))
   @Delete('/:id')
-  async delete(
-    @Param('id') id: string,
-    @Res() response: any,
-    @Req() request: any,
-  ): Promise<Call[]> {
-    const { user } = request;
-    const deletedCall = await this.callService.delete(id, user);
+  async delete(@Param('id') id: string, @Req() request: any): Promise<Call[]> {
+    const userUuid = request.user.userUuid;
+    const deletedCall = await this.callService.delete(id, userUuid);
     try {
-      return response.status(HttpStatus.OK).json({ data: deletedCall });
+      return [deletedCall];
     } catch (e: any) {
       if (e instanceof NotFoundException) {
-        return response.status(HttpStatus.NOT_FOUND).json();
+        throw new NotFoundException();
       }
       if (e instanceof BadRequestException) {
-        return response.status(HttpStatus.BAD_REQUEST).json();
+        throw new BadRequestException();
       }
-      return response.status(HttpStatus.INTERNAL_SERVER_ERROR).json();
+      throw new InternalServerErrorException();
     }
   }
 }

@@ -9,20 +9,24 @@ import { ICallRepository } from './call.repository.interface';
 @Injectable()
 export class CallRepository implements ICallRepository {
   constructor(
-    @InjectModel(Call.name) private readonly callModel: Model<CallDocument>,
-  ) { }
+    @InjectModel('calls') private readonly callModel: Model<CallDocument>,
+  ) {}
+
   async delete(call: Call): Promise<any> {
     call.deleted = true;
     console.log(call);
     return this.callModel.findByIdAndUpdate(call._id, call, { new: true });
   }
+  
   async findByIdAndUserUuid(id: string, userUuid: string): Promise<Call> {
     return this.callModel.findOne({ _id: id, userUuid: userUuid }).exec();
   }
 
   async add(call: Call): Promise<Call> {
     const callCreated = new this.callModel(call);
-    return callCreated.save();
+    const callSaved = callCreated.save();
+    console.log(callSaved);
+    return callSaved;
   }
 
   async getCallsByFilter(

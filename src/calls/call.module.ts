@@ -6,13 +6,11 @@ import { CallRepository } from './repository/call.repository';
 import { ICallRepository } from './repository/call.repository.interface';
 import { Call, CallSchema } from './schemas/call';
 import { ICallService } from './service/call.service.interface';
-import { SecurityModule } from 'src/security/jwt.module';
 import { JwtService } from '@nestjs/jwt';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Call.name, schema: CallSchema }]),
-    SecurityModule,
   ],
   controllers: [CallController],
   providers: [
@@ -29,4 +27,4 @@ import { JwtService } from '@nestjs/jwt';
   ],
   exports: [ICallService],
 })
-export class CallModule { }
+export class CallModule {}

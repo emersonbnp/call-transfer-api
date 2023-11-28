@@ -7,4 +7,4 @@ import { JwtGuard } from './jwt.guard';
   imports: [],
   providers: [JwtStrategy, JwtService, JwtGuard],
 })
-export class SecurityModule { }
+export class SecurityModule {}
