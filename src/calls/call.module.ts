@@ -10,7 +10,7 @@ import { JwtService } from '@nestjs/jwt';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Call.name, schema: CallSchema }]),
+    MongooseModule.forFeature([{ name: 'calls', schema: CallSchema }]),
   ],
   controllers: [CallController],
   providers: [

@@ -1,7 +1,30 @@
 # Use root/example as user/password credentials
 version: '3.1'
-
 services:
+
+  sonarqube:
+    image: sonarqube:latest
+    ports:
+      - 9000:9000
+    networks:
+      - call-transfer
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+      - sonarqube_temp:/opt/sonarqube/temp
+
+  jenkins:
+    image: jenkins/jenkins:lts
+    privileged: true
+    user: root
+    ports:
+      - 8080:8080
+      - 50000:50000
+    container_name: jenkins
+    volumes:
+      - /home/gil/jenkins_compose/jenkins_configuration:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
 
   mongo:
     container_name: mongo
@@ -16,19 +39,19 @@ services:
       MONGO_INITDB_ROOT_USERNAME: call-transfer
       MONGO_INITDB_ROOT_PASSWORD: 123456
 
-  # call-transfer-api:
-  #   image: call-transfer-api
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - 8081:8080
-  #   networks:
-  #     - call-transfer
-  #   depends_on:
-  #     - mongo
-  #   environment:
-  #     MONGODB_HOST: mongo
+  call-transfer-api:
+    image: call-transfer-api
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 8081:8080
+    networks:
+      - call-transfer
+    depends_on:
+      - mongo
+    environment:
+      MONGODB_HOST: mongo
 
   authentication-api:
     image: authentication-api
@@ -41,18 +64,29 @@ services:
       - call-transfer
     depends_on:
       - mongo
+    environment:
+      MONGODB_HOST: mongo
 
-  # signup-api:
-  #   image: signup-api
-  #   build:
-  #     context: ../signup-api
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - 8083:8080
-  #   networks:
-  #     - call-transfer
-  #   depends_on:
-  #     - mongo
+  signup-api:
+    image: signup-api
+    build:
+      context: ../signup-api
+      dockerfile: Dockerfile
+    ports:
+      - 8083:8080
+    networks:
+      - call-transfer
+    depends_on:
+      - mongo
+    environment:
+      MONGODB_HOST: mongo
+      
+volumes:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:
+  sonarqube_temp:
+  postgres_data:
 
 networks:
   call-transfer:

@@ -11,14 +11,16 @@ const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const mongoose_1 = require("@nestjs/mongoose");
 const call_module_1 = require("./calls/call.module");
+const jwt_module_1 = require("./security/jwt.module");
 let AppModule = class AppModule {
 };
 AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
             config_1.ConfigModule.forRoot({ isGlobal: true }),
-            mongoose_1.MongooseModule.forRoot(`mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@mongo`),
-            call_module_1.CallModule
+            mongoose_1.MongooseModule.forRoot(`mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@${process.env.MONGODB_HOST}`),
+            call_module_1.CallModule,
+            jwt_module_1.SecurityModule,
         ],
     })
 ], AppModule);

@@ -15,15 +15,13 @@ const call_repository_1 = require("./repository/call.repository");
 const call_repository_interface_1 = require("./repository/call.repository.interface");
 const call_1 = require("./schemas/call");
 const call_service_interface_1 = require("./service/call.service.interface");
-const security_module_1 = require("../security/security.module");
 const jwt_1 = require("@nestjs/jwt");
 let CallModule = class CallModule {
 };
 CallModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            mongoose_1.MongooseModule.forFeature([{ name: call_1.Call.name, schema: call_1.CallSchema }]),
-            security_module_1.SecurityModule,
+            mongoose_1.MongooseModule.forFeature([{ name: 'calls', schema: call_1.CallSchema }]),
         ],
         controllers: [call_controller_1.CallController],
         providers: [

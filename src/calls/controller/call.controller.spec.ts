@@ -15,7 +15,8 @@ let mongod: MongoMemoryServer;
 const rootMongooseTestModule = (options: MongooseModuleOptions = {}) =>
   MongooseModule.forRootAsync({
     useFactory: async () => {
-      mongod = await MongoMemoryServer.create();
+      //mongod = await MongoMemoryServer.create();
+      mongod = await MongoMemoryServer.create({ binary: { version: '6.0.1' } });
       const mongoUri = mongod.getUri();
       return {
         uri: mongoUri,
@@ -63,7 +64,7 @@ describe('AppController', () => {
       await collection.deleteMany({});
     }
   });
-
+ 
   describe('post call', () => {
     it('should create call with userUuid', async () => {
       // Given
@@ -87,7 +88,7 @@ describe('AppController', () => {
 
       // When
       const createdCall = await callController.addCall(call, request);
-
+      
       // Then
       expect(createdCall.userUuid).toBe(userUuid);
     });
