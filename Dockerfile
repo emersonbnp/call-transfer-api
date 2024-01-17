@@ -18,13 +18,3 @@ COPY . .
 EXPOSE 8080
 CMD [ "npm", "run", "start:dev" ]
 
-FROM jenkins/jenkins:lts
-
-USER root
-
-# Install libssl-dev
-RUN apt-get update && \
-    apt-get install -y libssl-dev && \
-    rm -rf /var/lib/apt/lists/*
-
-USER jenkins
