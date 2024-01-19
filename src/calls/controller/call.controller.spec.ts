@@ -16,7 +16,9 @@ const rootMongooseTestModule = (options: MongooseModuleOptions = {}) =>
   MongooseModule.forRootAsync({
     useFactory: async () => {
       //mongod = await MongoMemoryServer.create();
-      mongod = await MongoMemoryServer.create({ binary: { version: '6.0.1' } });
+      mongod = await MongoMemoryServer.create({ binary: { version: '6.0.1' },}
+      
+      );
       const mongoUri = mongod.getUri();
       return {
         uri: mongoUri,
