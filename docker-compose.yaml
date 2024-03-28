@@ -21,6 +21,8 @@ services:
     ports:
       - 8080:8080
       - 50000:50000
+    networks:
+      - call-transfer
     container_name: jenkins
     volumes:
       - /home/gil/jenkins_compose/jenkins_configuration:/var/jenkins_home

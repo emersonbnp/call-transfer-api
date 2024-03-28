@@ -75,6 +75,7 @@ describe('AppController', () => {
       const call: Call = {
         _id: null,
         userUuid: null,
+        uuid: null,
         details: {
           description: 'description',
           duration: 12,
@@ -85,6 +86,12 @@ describe('AppController', () => {
           paymentValue: 1000,
           startDate: new Date(),
         },
+        address: {
+          street: "Lindolfo de Azevedo",
+          city: "Remígio",
+          state: "Paraíba",
+          zipCode: "00000000"
+          },
         deleted: false,
       };
 
@@ -102,6 +109,7 @@ describe('AppController', () => {
       const call: Call = {
         _id: null,
         userUuid: null,
+        uuid: null,
         details: {
           description: 'description',
           duration: 12,
@@ -112,14 +120,20 @@ describe('AppController', () => {
           paymentValue: 1000,
           startDate: new Date(),
         },
+        address: {
+          street: "Lindolfo de Azevedo",
+          city: "Remígio",
+          state: "Paraíba",
+          zipCode: "00000000"
+          },
         deleted: false,
       };
       await callController.addCall(call, createRequest(uuidv4()));
       const filter = { latitude: -34.827179,longitude:-7.1213128, distance: 1000 }
 
       // When
-      const filteredCalls = await callController.getCallsByFilter(filter, null, null);
-
+      const filteredCalls = await callController.getCallsByFilter(filter, null, null, null);
+      console.log('FilteredCalls:', filteredCalls)
       // Then
       expect(filteredCalls.length).toBe(1);
     });
