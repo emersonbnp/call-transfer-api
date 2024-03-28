@@ -4,13 +4,13 @@ import { Location } from './location';
 @Schema({})
 export class Details {
   @Prop({ required: true })
-  readonly description: string;
+  description: string;
   @Prop({ required: true })
-  readonly paymentValue: number;
+  paymentValue: number;
   @Prop({ required: true })
-  readonly startDate: Date;
+  startDate: Date;
   @Prop({ required: true })
-  readonly duration: number;
+  duration: number;
   @Prop({ required: true, type: Location })
-  readonly location: Location;
+  location: Location;
 }

@@ -19,7 +19,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "sonar":  "node_modules/sonar-scanner/bin/sonar-scanner"
+    "sonar": "node_modules/sonar-scanner/bin/sonar-scanner"
   },
   "dependencies": {
     "@nestjs/common": "^8.0.0",
@@ -39,9 +39,10 @@
     "reflect-metadata": "^0.1.13",
     "rimraf": "^3.0.2",
     "rxjs": "^7.2.0",
-    "swagger-ui-express": "^4.4.0",
     "sonar-scanner": "^3.1.0",
-    "sonarqube-scanner": "^3.3.0"
+    "sonarqube-scanner": "^3.3.0",
+    "swagger-ui-express": "^4.4.0",
+    "uuidv4": "^6.2.13"
   },
   "devDependencies": {
     "@nestjs/cli": "^8.2.8",

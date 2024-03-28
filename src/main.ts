@@ -3,8 +3,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-
+  const app = await NestFactory.create(AppModule, {cors: true});
   if (process.env.SWAGGER === 'true') {
     const config = new DocumentBuilder()
       .setTitle('Call Transfer API')
@@ -16,6 +15,7 @@ async function bootstrap() {
     SwaggerModule.setup('swagger', app, document);
   }
 
+  //await app.listen(8081);
   await app.listen(8080);
 
   if ((module as any).hot) {

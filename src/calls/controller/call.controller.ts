@@ -4,7 +4,7 @@ import {
   Controller,
   Delete,
   Get,
-  HttpCode,
+  Put,
   HttpStatus,
   Inject,
   InternalServerErrorException,
@@ -48,10 +48,30 @@ export class CallController {
     }
   }
 
+  @UseGuards(AuthGuard('jwt'))
+  @Put()
+  async editCall(@Body() call: Call, @Req() request: any): Promise<Call> {
+    const userUuid = request.user.userUuid;
+    const editedCall = await this.callService.edit(call, userUuid);
+    console.log('EDITED CALL', editedCall)
+    try {
+      return editedCall;
+    } catch (e: any) {
+      if (e instanceof NotFoundException) {
+        throw new NotFoundException();
+      }
+      if (e instanceof BadRequestException) {
+        throw new BadRequestException();
+      }
+      throw new InternalServerErrorException();
+    }
+  }
+
   @Get('/filter')
   async getCallsByFilter(
     @Query('location') location: any,
     @Query('userUuid') userUuid: string,
+    @Query('uuid') uuid: string,
     @Query('page') page: any
   ): Promise<Call[]> {
     const filter = new RegionFilter(location || {});
@@ -60,6 +80,7 @@ export class CallController {
       filter,
       pagination,
       userUuid,
+      uuid,
     );
     try {
       return callsInRegion;
@@ -89,6 +110,30 @@ export class CallController {
         throw new BadRequestException();
       }
       throw new InternalServerErrorException();
+    }
+  }
+
+  @Get('/getCurrentLocalization')
+  async getCurrentLocalization(@Body() call: Call, @Req() request: any): Promise<Call> {
+          
+          const coordinates: number[] = call.details.location.coordinates;
+          const [latitude, longitude] = coordinates;
+          console.log('CONTROLLER LATITUDE',latitude)
+          console.log('CONTROLLER LONGITUDE',longitude)
+          console.log('CONTROLLER GOOGLE API KEY:', process.env.GOOGLE_API_URL)
+
+          const currentLocalization = await this.callService.getCurrentLocalization(call);
+          try {
+            console.log('CURRENT LOCALIZATION------------>', currentLocalization)
+            return currentLocalization;   
+          } catch (e: any) {
+            if (e instanceof NotFoundException) {
+              throw new NotFoundException();
+            }
+            if (e instanceof BadRequestException) {
+              throw new BadRequestException();
+            }
+            throw new InternalServerErrorException();
     }
   }
 }
